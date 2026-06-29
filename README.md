@@ -1,6 +1,8 @@
 # ISeeYou v1.0
 Take webcam shots from target just sending a malicious link
 
+[![Untitled.png](https://i.postimg.cc/d3zw2THH/Untitled.png)](https://postimg.cc/m1NvRhGC)
+
 
 # How it works?
 <p>The tool generates a malicious HTTPS page using Serveo or Ngrok Port Forwarding methods, and a javascript code to cam requests using MediaDevices.getUserMedia. </p>
