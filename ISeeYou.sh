@@ -68,8 +68,15 @@ checkfound() {
 }
 
 extract_ngrok_url() {
-  # Fixed regex to support uppercase letters, numbers, and hyphens
-  curl -s -N http://127.0.0.1:4040/api/tunnels 2>/dev/null | grep -oP '"public_url":"\K[^"]*' | head -1
+  # Try multiple methods to extract ngrok URL
+  local url=$(curl -s http://127.0.0.1:4040/api/tunnels 2>/dev/null | grep -oP 'https://[0-9a-zA-Z-]*\.ngrok\.io' | head -1)
+  if [[ -z $url ]]; then
+    # Alternative: use jq if available
+    if command -v jq &> /dev/null; then
+      url=$(curl -s http://127.0.0.1:4040/api/tunnels 2>/dev/null | jq -r '.tunnels[0].public_url' 2>/dev/null)
+    fi
+  fi
+  echo "$url"
 }
 
 extract_serveo_url() {
@@ -147,6 +154,9 @@ ngrok_server() {
   link=$(extract_ngrok_url)
   if [[ -z $link ]]; then
     printf "\e[1;93m[\e[0m\e[1;91m!\e[0m\e[1;93m] Failed to get ngrok URL\e[0m\n"
+    printf "\e[1;93m[\e[0m\e[1;93m+\e[0m\e[1;93m] Debugging: Checking ngrok API response...\e[0m\n"
+    curl -s http://127.0.0.1:4040/api/tunnels 2>/dev/null | head -c 500
+    printf "\n"
   else
     printf "\e[1;93m[\e[0m*\e[1;93m] Direct link:\e[0m\e[1;93m %s\e[0m\n" "$link"
   fi
