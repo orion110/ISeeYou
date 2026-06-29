@@ -68,15 +68,39 @@ checkfound() {
 }
 
 extract_ngrok_url() {
-  # Try multiple methods to extract ngrok URL
-  local url=$(curl -s http://127.0.0.1:4040/api/tunnels 2>/dev/null | grep -oP 'https://[0-9a-zA-Z-]*\.ngrok\.io' | head -1)
-  if [[ -z $url ]]; then
-    # Alternative: use jq if available
-    if command -v jq &> /dev/null; then
-      url=$(curl -s http://127.0.0.1:4040/api/tunnels 2>/dev/null | jq -r '.tunnels[0].public_url' 2>/dev/null)
+  # Method 1: Try API endpoint
+  local api_response=$(curl -s --connect-timeout 5 http://127.0.0.1:4040/api/tunnels 2>/dev/null)
+  
+  # Debug: show first attempt
+  if [[ -z "$api_response" ]]; then
+    printf "\e[1;93m[DEBUG] No response from ngrok API\e[0m\n"
+    sleep 2
+    # Try again after delay
+    api_response=$(curl -s --connect-timeout 5 http://127.0.0.1:4040/api/tunnels 2>/dev/null)
+  fi
+  
+  if [[ -n "$api_response" ]]; then
+    printf "\e[1;93m[DEBUG] API Response: %s\e[0m\n" "$api_response"
+    
+    # Try with grep
+    local url=$(echo "$api_response" | grep -oP 'https://[0-9a-zA-Z-]*\.ngrok\.io' | head -1)
+    
+    if [[ -z $url ]]; then
+      # Try with jq if available
+      if command -v jq &> /dev/null; then
+        url=$(echo "$api_response" | jq -r '.tunnels[0].public_url' 2>/dev/null)
+      fi
+    fi
+    
+    echo "$url"
+  else
+    # Fallback: Check if ngrok process is running
+    if ps aux | grep -q "ngrok http"; then
+      printf "\e[1;93m[DEBUG] ngrok process is running but API not responding\e[0m\n"
+    else
+      printf "\e[1;93m[DEBUG] ngrok process not found!\e[0m\n"
     fi
   fi
-  echo "$url"
 }
 
 extract_serveo_url() {
@@ -149,14 +173,12 @@ ngrok_server() {
   
   printf "\e[1;93m[\e[0m+\e[1;93m] Starting ngrok server...\n"
   ./ngrok http 3333 > /dev/null 2>&1 &
-  sleep 10
+  sleep 15
   
+  printf "\e[1;93m[\e[0m+\e[1;93m] Getting ngrok URL...\n"
   link=$(extract_ngrok_url)
   if [[ -z $link ]]; then
-    printf "\e[1;93m[\e[0m\e[1;91m!\e[0m\e[1;93m] Failed to get ngrok URL\e[0m\n"
-    printf "\e[1;93m[\e[0m\e[1;93m+\e[0m\e[1;93m] Debugging: Checking ngrok API response...\e[0m\n"
-    curl -s http://127.0.0.1:4040/api/tunnels 2>/dev/null | head -c 500
-    printf "\n"
+    printf "\e[1;93m[\e[0m\e[1;91m!\e[0m\e[1;93m] Failed to get ngrok URL after retries\e[0m\n"
   else
     printf "\e[1;93m[\e[0m*\e[1;93m] Direct link:\e[0m\e[1;93m %s\e[0m\n" "$link"
   fi
