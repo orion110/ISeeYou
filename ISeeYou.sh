@@ -68,39 +68,39 @@ checkfound() {
 }
 
 extract_ngrok_url() {
-  # Method 1: Try API endpoint
-  local api_response=$(curl -s --connect-timeout 5 http://127.0.0.1:4040/api/tunnels 2>/dev/null)
+  local retries=0
+  local max_retries=10
+  local url=""
   
-  # Debug: show first attempt
-  if [[ -z "$api_response" ]]; then
-    printf "\e[1;93m[DEBUG] No response from ngrok API\e[0m\n"
-    sleep 2
-    # Try again after delay
-    api_response=$(curl -s --connect-timeout 5 http://127.0.0.1:4040/api/tunnels 2>/dev/null)
-  fi
-  
-  if [[ -n "$api_response" ]]; then
-    printf "\e[1;93m[DEBUG] API Response: %s\e[0m\n" "$api_response"
+  while [[ $retries -lt $max_retries ]] && [[ -z $url ]]; do
+    local api_response=$(curl -s --connect-timeout 5 http://127.0.0.1:4040/api/tunnels 2>/dev/null)
     
-    # Try with grep
-    local url=$(echo "$api_response" | grep -oP 'https://[0-9a-zA-Z-]*\.ngrok\.io' | head -1)
-    
-    if [[ -z $url ]]; then
-      # Try with jq if available
-      if command -v jq &> /dev/null; then
+    if [[ -n "$api_response" ]]; then
+      # Try grep first for https:// URLs
+      url=$(echo "$api_response" | grep -oP 'https://[0-9a-zA-Z-]*\.ngrok\.(io|app)' | head -1)
+      
+      # If grep fails, try jq
+      if [[ -z $url ]] && command -v jq &> /dev/null; then
         url=$(echo "$api_response" | jq -r '.tunnels[0].public_url' 2>/dev/null)
+        if [[ "$url" == "null" ]] || [[ -z "$url" ]]; then
+          url=""
+        fi
       fi
-    fi
-    
-    echo "$url"
-  else
-    # Fallback: Check if ngrok process is running
-    if ps aux | grep -q "ngrok http"; then
-      printf "\e[1;93m[DEBUG] ngrok process is running but API not responding\e[0m\n"
+      
+      # If still empty, show response and retry
+      if [[ -z $url ]]; then
+        printf "\e[1;93m[DEBUG] Tunnel not ready yet (attempt $((retries+1))/$max_retries)\e[0m\n"
+        sleep 2
+        ((retries++))
+      fi
     else
-      printf "\e[1;93m[DEBUG] ngrok process not found!\e[0m\n"
+      printf "\e[1;93m[DEBUG] No response from API (attempt $((retries+1))/$max_retries)\e[0m\n"
+      sleep 2
+      ((retries++))
     fi
-  fi
+  done
+  
+  echo "$url"
 }
 
 extract_serveo_url() {
@@ -173,10 +173,11 @@ ngrok_server() {
   
   printf "\e[1;93m[\e[0m+\e[1;93m] Starting ngrok server...\n"
   ./ngrok http 3333 > /dev/null 2>&1 &
-  sleep 15
+  sleep 5
   
-  printf "\e[1;93m[\e[0m+\e[1;93m] Getting ngrok URL...\n"
+  printf "\e[1;93m[\e[0m+\e[1;93m] Getting ngrok URL (this may take a moment)...\n"
   link=$(extract_ngrok_url)
+  
   if [[ -z $link ]]; then
     printf "\e[1;93m[\e[0m\e[1;91m!\e[0m\e[1;93m] Failed to get ngrok URL after retries\e[0m\n"
   else
